@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchTransactions, deleteTransaction, setFilters, clearFilters } from '../../store/slices/transactionsSlice';
+import { fetchCategories } from '../../store/slices/categoriesSlice';
 import { Transaction } from '../../types/api';
 import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
@@ -27,6 +28,10 @@ const TransactionsList: React.FC = () => {
     const showAccountColumn = !accountIdFromUrl;
 
     useEffect(() => {
+        dispatch(fetchCategories());
+    }, [dispatch]);
+
+    useEffect(() => {
         if (!initialized) {
             const now = new Date();
             const defaultStartDate = formatDate(startOfMonth(now), 'yyyy-MM-dd');
@@ -45,6 +50,14 @@ const TransactionsList: React.FC = () => {
             setInitialized(true);
         }
     }, [dispatch, initialized, accountIdFromUrl]);
+
+    useEffect(() => {
+        if (initialized && accountIdFromUrl) {
+            dispatch(setFilters({ account_id: parseInt(accountIdFromUrl, 10) }));
+        } else if (initialized && !accountIdFromUrl) {
+            dispatch(setFilters({ account_id: undefined }));
+        }
+    }, [dispatch, accountIdFromUrl, initialized]);
 
     useEffect(() => {
         if (initialized) {
