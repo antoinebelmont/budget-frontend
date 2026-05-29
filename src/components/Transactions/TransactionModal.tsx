@@ -51,11 +51,11 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, accoun
         dispatch(fetchPayees());
     }, [dispatch]);
 
-    const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<TransactionForm>({
+    const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<TransactionForm>({
         resolver: yupResolver(schema),
         defaultValues: transaction ? {
             account_id: transaction.account_id,
-            date: transaction.date,
+            date: transaction.date.split('T')[0],
             amount: Math.abs(transaction.amount),
             payee_id: transaction.payee_id || undefined,
             category_id: transaction.category_id || undefined,
@@ -68,6 +68,21 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, accoun
             cleared: 'uncleared',
         },
     });
+
+    // Re-apply defaults after reference data (accounts/payees) finishes loading
+    useEffect(() => {
+        if (isEditing && transaction && accounts.length > 0 && payees.length > 0) {
+            reset({
+                account_id: transaction.account_id,
+                date: transaction.date.split('T')[0],
+                amount: Math.abs(transaction.amount),
+                payee_id: transaction.payee_id || undefined,
+                category_id: transaction.category_id || undefined,
+                memo: transaction.memo || '',
+                cleared: transaction.cleared,
+            });
+        }
+    }, [isEditing, transaction, accounts, payees, reset]);
 
     // Watch for payee changes to auto-assign category
     const selectedPayeeId = watch('payee_id');
