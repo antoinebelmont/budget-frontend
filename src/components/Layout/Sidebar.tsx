@@ -10,7 +10,8 @@ import {
     Cog6ToothIcon,
     ArrowRightOnRectangleIcon,
     ChevronDownIcon,
-    ChevronRightIcon
+    ChevronRightIcon,
+    ArrowUpTrayIcon
 } from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { logoutUser } from '../../store/slices/authSlice';
@@ -21,6 +22,7 @@ const navigation = [
     { name: 'Budget', to: '/budget', icon: WalletIcon },
     { name: 'Accounts', to: '/accounts', icon: CreditCardIcon },
     { name: 'Transactions', to: '/transactions', icon: ArrowsRightLeftIcon },
+    { name: 'Import', to: '/import', icon: ArrowUpTrayIcon },
     { name: 'Payees', to: '/payees', icon: UsersIcon },
     { name: 'Goals', to: '/goals', icon: TrophyIcon },
     { name: 'Reports', to: '/reports', icon: ChartBarIcon },

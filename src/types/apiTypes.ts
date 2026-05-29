@@ -168,6 +168,19 @@ export interface TransactionForm {
     cleared: Transaction['cleared'];
 }
 
+// Import types
+export interface ImportRowDetail {
+    row_number: number;
+    reason: string;
+}
+
+export interface ImportResult {
+    imported_count: number;
+    ignored_rows: ImportRowDetail[];
+    error_rows: ImportRowDetail[];
+    success: boolean;
+}
+
 export interface GoalForm {
     category_id: number;
     type: Goal['type'];

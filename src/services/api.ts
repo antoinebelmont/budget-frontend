@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import toast from 'react-hot-toast';
+import type { ImportResult } from '@/types/apiTypes';
 
 class ApiService {
     private api: AxiosInstance;
@@ -76,6 +77,18 @@ class ApiService {
 
     public async delete<T>(url: string): Promise<T> {
         const response: AxiosResponse<T> = await this.api.delete(url);
+        return response.data;
+    }
+
+    public async uploadAndImport(file: File, accountId: number): Promise<ImportResult> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('account_id', String(accountId));
+
+        const response: AxiosResponse<ImportResult> = await this.api.post('/transactions/import', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 120000,
+        });
         return response.data;
     }
 

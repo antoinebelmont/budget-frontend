@@ -15,6 +15,7 @@ import GoalsList from './components/Goals/GoalsList';
 import ReportsRouter from "@/components/Reports/ReportsRouter";
 import AccountDetailPage from "@/components/Accounts/AccountDetailPage";
 import SettingsPage from './components/Settings/SettingsPage';
+import ImportPage from '@/components/Import/ImportPage';
 
 const App: React.FC = () => {
     return (
@@ -58,6 +59,7 @@ const App: React.FC = () => {
                         <Route path="reports" element={<ReportsRouter />} />
                         <Route path="payees" element={<PayeesList />} />
                         <Route path="settings" element={<SettingsPage />} />
+                        <Route path="import" element={<ImportPage />} />
                     </Route>
                 </Routes>
             </BrowserRouter>
