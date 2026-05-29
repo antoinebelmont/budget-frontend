@@ -33,7 +33,7 @@ const Sidebar: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
-    const { user } = useAppSelector((state) => state.auth);
+    const { user, isAuthenticated } = useAppSelector((state) => state.auth);
     const { sidebarAccounts } = useAppSelector((state) => state.accounts);
     const { preferences } = useAppSelector((state) => state.auth);
     const [transactionsExpanded, setTransactionsExpanded] = useState(false);
@@ -41,8 +41,10 @@ const Sidebar: React.FC = () => {
     const currentAccountId = searchParams.get('account_id');
 
     useEffect(() => {
-        dispatch(fetchAccountsForSidebar());
-    }, [dispatch]);
+        if (isAuthenticated) {
+            dispatch(fetchAccountsForSidebar());
+        }
+    }, [dispatch, isAuthenticated]);
 
     useEffect(() => {
         const isTransactionsPage = location.pathname === '/transactions' || location.pathname.startsWith('/transactions');
@@ -56,6 +58,7 @@ const Sidebar: React.FC = () => {
 
     const showTransactionCounts = preferences?.show_transaction_counts ?? false;
     const hasMultipleAccounts = sidebarAccounts.length >= 2;
+    const isTransactionsPage = location.pathname === '/transactions' || location.pathname.startsWith('/transactions');
 
     return (
         <div className="hidden md:flex md:w-64 md:flex-col">
@@ -81,11 +84,11 @@ const Sidebar: React.FC = () => {
                                                         'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
                                                         isActive
                                                             ? 'bg-primary-100 text-primary-900 dark:bg-primary-900/40 dark:text-primary-200 border-l-2 border-primary-500 dark:border-primary-400 -ml-px'
-                                                            : 'text-[var(--text-secondary)] hover:bg-gray-50 dark:hover:bg-slate-700/70 hover:text-[var(--text-primary)]'
+                                                            : 'text-[var(--text-primary)] hover:bg-gray-50 dark:hover:bg-slate-700/70 hover:text-[var(--text-primary)]'
                                                     )
                                                 }
                                             >
-                                                <item.icon className="mr-3 h-5 w-5 group-hover:text-[var(--text-primary)] transition-colors" />
+                                                <item.icon className="mr-3 h-5 w-5 text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors" />
                                                 {item.name}
                                             </NavLink>
                                         );
@@ -93,62 +96,59 @@ const Sidebar: React.FC = () => {
 
                                     return (
                                         <div key={item.name}>
-                                            <NavLink
-                                                to="/transactions"
-                                                className={({ isActive }) =>
-                                                    clsx(
-                                                        'group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md transition-colors',
-                                                        isActive && !currentAccountId
-                                                            ? 'bg-primary-100 text-primary-900 dark:bg-primary-900/40 dark:text-primary-200 border-l-2 border-primary-500 dark:border-primary-400 -ml-px'
-                                                            : 'text-[var(--text-secondary)] hover:bg-gray-50 dark:hover:bg-slate-700/70 hover:text-[var(--text-primary)]'
-                                                    )
-                                                }
+                                            <button
+                                                className={clsx(
+                                                    'group flex items-center justify-between w-full px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                                                    isTransactionsPage
+                                                        ? 'bg-primary-100 text-primary-900 dark:bg-primary-900/40 dark:text-primary-200 border-l-2 border-primary-500 dark:border-primary-400 -ml-px'
+                                                        : 'text-[var(--text-primary)] hover:bg-gray-50 dark:hover:bg-slate-700/70 hover:text-[var(--text-primary)]'
+                                                )}
                                                 onClick={() => setTransactionsExpanded(!transactionsExpanded)}
                                             >
                                                 <span className="flex items-center">
-                                                    <item.icon className="mr-3 h-5 w-5 group-hover:text-[var(--text-primary)] transition-colors" />
+                                                    <item.icon className="mr-3 h-5 w-5 text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors" />
                                                     {item.name}
                                                 </span>
                                                 {transactionsExpanded ? (
-                                                    <ChevronDownIcon className="h-4 w-4" />
+                                                    <ChevronDownIcon className="h-4 w-4 text-[var(--text-secondary)]" />
                                                 ) : (
-                                                    <ChevronRightIcon className="h-4 w-4" />
+                                                    <ChevronRightIcon className="h-4 w-4 text-[var(--text-secondary)]" />
                                                 )}
-                                            </NavLink>
+                                            </button>
                                             {transactionsExpanded && (
                                                 <div className="ml-6 mt-1 space-y-1">
-                                                    {sidebarAccounts.map((account) => (
-                                                        <NavLink
-                                                            key={account.id}
-                                                            to={`/transactions?account_id=${account.id}`}
-                                                            className={({ isActive }) =>
-                                                                clsx(
+                                                    {sidebarAccounts.map((account) => {
+                                                        const isSelected = currentAccountId === String(account.id);
+                                                        return (
+                                                            <NavLink
+                                                                key={account.id}
+                                                                to={`/transactions?account_id=${account.id}`}
+                                                                className={clsx(
                                                                     'group flex items-center justify-between px-2 py-1.5 text-sm font-medium rounded-md transition-colors',
-                                                                    isActive
-                                                                        ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300'
-                                                                        : 'text-[var(--text-muted)] hover:bg-gray-50 dark:hover:bg-slate-700/50 hover:text-[var(--text-secondary)]'
-                                                                )
-                                                            }
+                                                                    isSelected
+                                                                        ? 'text-primary-700 dark:text-primary-300 font-medium'
+                                                                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                                                                )}
+                                                            >
+                                                                <span>{account.name}</span>
+                                                                {showTransactionCounts && (
+                                                                    <span className="text-xs text-[var(--text-muted)]">({account.transaction_count})</span>
+                                                                )}
+                                                            </NavLink>
+                                                        );
+                                                    })}
+                                                    {currentAccountId ? (
+                                                        <NavLink
+                                                            to="/transactions"
+                                                            className="group flex items-center px-2 py-1.5 text-sm font-medium rounded-md transition-colors text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                                                         >
-                                                            <span>{account.name}</span>
-                                                            {showTransactionCounts && (
-                                                                <span className="text-xs text-[var(--text-muted)]">({account.transaction_count})</span>
-                                                            )}
+                                                            All Transactions
                                                         </NavLink>
-                                                    ))}
-                                                    <NavLink
-                                                        to="/transactions"
-                                                        className={({ isActive }) =>
-                                                            clsx(
-                                                                'group flex items-center px-2 py-1.5 text-sm font-medium rounded-md transition-colors',
-                                                                !currentAccountId
-                                                                    ? 'text-primary-700 dark:text-primary-300 font-medium'
-                                                                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                                                            )
-                                                        }
-                                                    >
-                                                        All Transactions
-                                                    </NavLink>
+                                                    ) : (
+                                                        <span className="text-primary-700 dark:text-primary-300 font-medium px-2 py-1.5 text-sm rounded-md">
+                                                            All Transactions
+                                                        </span>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
