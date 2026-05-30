@@ -62,18 +62,18 @@ src/
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- pnpm
 
 ### Installation
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### Development
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Starts the development server at `http://localhost:5173`
@@ -81,7 +81,7 @@ Starts the development server at `http://localhost:5173`
 ### Build
 
 ```bash
-npm run build
+pnpm build
 ```
 
 Builds the application for production.
@@ -89,10 +89,12 @@ Builds the application for production.
 ### Preview
 
 ```bash
-npm run preview
+pnpm preview
 ```
 
 Preview the production build locally.
+
+> **Note**: On first install, you may be prompted to approve build scripts for esbuild. This is expected behavior.
 
 ## API Configuration
 
@@ -110,12 +112,12 @@ The app uses JWT token authentication stored in `localStorage`. Tokens are autom
 
 ## Available Scripts
 
-| Command       | Description                     |
-|---------------|---------------------------------|
-| `npm run dev` | Start development server        |
-| `npm run build` | Build for production          |
-| `npm run lint` | Run ESLint                     |
-| `npm run preview` | Preview production build   |
+| Command         | Description                     |
+|-----------------|---------------------------------|
+| `pnpm dev`      | Start development server        |
+| `pnpm build`    | Build for production            |
+| `pnpm lint`     | Run ESLint                      |
+| `pnpm preview`  | Preview production build        |
 
 ## Routes
 
