@@ -59,7 +59,7 @@ const ImportPage: React.FC = () => {
             {step === 'account' && (
                 <AccountPickerModal
                     open={true}
-                    onClose={() => navigate('/transactions')}
+                    onClose={() => {}}
                     onAccountSelect={handleAccountSelect}
                 />
             )}

@@ -32,7 +32,6 @@ const AccountPickerModal: React.FC<AccountPickerModalProps> = ({ open, onClose, 
 
     const handleSelect = (accountId: number) => {
         onAccountSelect(accountId);
-        onClose();
     };
 
     return (
