@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchTransactions, deleteTransaction, setFilters, clearFilters } from '../../store/slices/transactionsSlice';
+import { fetchTransactions, deleteTransaction, bulkDeleteTransactions, bulkUpdateTransactionsStatus, setFilters, clearFilters } from '../../store/slices/transactionsSlice';
 import { fetchCategories } from '../../store/slices/categoriesSlice';
 import { Transaction } from '../../types/api';
-import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, ArrowDownTrayIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import TransactionModal from './TransactionModal';
 import { format, startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
@@ -23,6 +23,7 @@ const TransactionsList: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isExporting, setIsExporting] = useState(false);
     const [initialized, setInitialized] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
     const accountIdFromUrl = searchParams.get('account_id');
     const showAccountColumn = !accountIdFromUrl;
@@ -74,6 +75,53 @@ const TransactionsList: React.FC = () => {
                 toast.error('Failed to delete transaction');
             }
         }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (window.confirm(`Are you sure you want to delete ${selectedIds.size} transaction${selectedIds.size !== 1 ? 's' : ''}?`)) {
+            try {
+                await dispatch(bulkDeleteTransactions(Array.from(selectedIds))).unwrap();
+                toast.success(`${selectedIds.size} transactions deleted`);
+                setSelectedIds(new Set());
+            } catch (error) {
+                toast.error('Failed to delete transactions');
+            }
+        }
+    };
+
+    const [bulkStatus, setBulkStatus] = useState<'cleared' | 'uncleared' | 'reconciled' | ''>('');
+
+    const handleBulkUpdateStatus = async () => {
+        alert("prue")
+        if (selectedIds.size === 0 || !bulkStatus) return;
+        try {
+            await dispatch(bulkUpdateTransactionsStatus({ ids: Array.from(selectedIds), cleared: bulkStatus })).unwrap();
+            toast.success(`${selectedIds.size} transactions updated`);
+            setBulkStatus('');
+            setSelectedIds(new Set());
+        } catch (error) {
+            console.error('Bulk update failed:', error);
+            toast.error('Failed to update transactions mdfkr');
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === transactions.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(transactions.map(t => t.id)));
+        }
+    };
+
+    const toggleSelect = (id: number) => {
+        const newSelected = new Set(selectedIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedIds(newSelected);
     };
 
     const handleFilterChange = (filterKey: string, value: any) => {
@@ -221,6 +269,48 @@ const TransactionsList: React.FC = () => {
                 </div>
             </div>
 
+            {/* Bulk Actions Bar */}
+            {selectedIds.size > 0 && (
+                <div className="card p-4 flex items-center justify-between bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
+                    <span className="text-sm text-primary-700 dark:text-primary-300">
+                        {selectedIds.size} transaction{selectedIds.size !== 1 ? 's' : ''} selected
+                    </span>
+                    <div className="flex gap-2 items-center">
+                        <select
+                            value={bulkStatus}
+                            onChange={(e) => setBulkStatus(e.target.value as 'cleared' | 'uncleared' | 'reconciled' | '')}
+                            className="input text-sm py-1.5"
+                        >
+                            <option value="">Set status...</option>
+                            <option value="cleared">Cleared</option>
+                            <option value="uncleared">Pending</option>
+                            <option value="reconciled">Reconciled</option>
+                        </select>
+                        <button
+                            onClick={handleBulkUpdateStatus}
+                            disabled={!bulkStatus}
+                            className="btn-secondary flex items-center text-sm disabled:opacity-50"
+                        >
+                            <CheckCircleIcon className="h-4 w-4 mr-1" />
+                            Update Status
+                        </button>
+                        <button
+                            onClick={() => setSelectedIds(new Set())}
+                            className="btn-secondary text-sm"
+                        >
+                            Clear
+                        </button>
+                        <button
+                            onClick={handleBulkDelete}
+                            className="btn-danger flex items-center text-sm"
+                        >
+                            <TrashIcon className="h-4 w-4 mr-1" />
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Filters Panel */}
             {showFilters && (
                 <div className="card p-4 space-y-4">
@@ -275,6 +365,14 @@ const TransactionsList: React.FC = () => {
                 <table className="min-w-full divide-y divide-[var(--border-default)]">
                     <thead className="bg-gray-50 dark:bg-slate-800">
                     <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase w-10">
+                            <input
+                                type="checkbox"
+                                checked={transactions.length > 0 && selectedIds.size === transactions.length}
+                                onChange={toggleSelectAll}
+                                className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-600"
+                            />
+                        </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase">Date</th>
                         {showAccountColumn && (
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase">Account</th>
@@ -290,7 +388,7 @@ const TransactionsList: React.FC = () => {
                     <tbody className="bg-white dark:bg-[var(--bg-surface)] divide-y divide-[var(--border-default)]">
                     {transactions.length === 0 ? (
                         <tr>
-                            <td colSpan={showAccountColumn ? 8 : 7} className="px-6 py-12 text-center">
+                            <td colSpan={showAccountColumn ? 9 : 8} className="px-6 py-12 text-center">
                                 <div className="text-gray-500">
                                     <p className="text-lg font-medium">No transactions found</p>
                                     <p className="text-sm mt-1">Add your first transaction to get started</p>
@@ -306,6 +404,14 @@ const TransactionsList: React.FC = () => {
                     ) : (
                         transactions.map((transaction) => (
                             <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.has(transaction.id)}
+                                        onChange={() => toggleSelect(transaction.id)}
+                                        className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-600"
+                                    />
+                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-[var(--text-primary)]">
                                     {format(new Date(transaction.date), 'MMM dd, yyyy')}
                                 </td>

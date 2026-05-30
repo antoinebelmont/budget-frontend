@@ -57,6 +57,38 @@ export const deleteTransaction = createAsyncThunk<number, number>(
     }
 );
 
+export const bulkDeleteTransactions = createAsyncThunk<number[], number[]>(
+    'transactions/bulkDeleteTransactions',
+    async (ids) => {
+        await apiService.post('/transactions/bulk-delete', { ids });
+        return ids;
+    }
+);
+
+export const bulkUpdateTransactionsStatus = createAsyncThunk<
+    { ids: number[]; cleared: string },
+    { ids: number[]; cleared: 'cleared' | 'uncleared' | 'reconciled' }
+>('transactions/bulkUpdateTransactionsStatus', async ({ ids, cleared }) => {
+    console.log('bulkUpdateTransactionsStatus thunk called', { ids, cleared });
+    const token = localStorage.getItem('auth_token');
+    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    console.log('Making request to:', `${baseURL}/transactions/bulk-update-status`);
+    const response = await fetch(`${baseURL}/transactions/bulk-update-status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ ids, cleared }),
+    });
+    console.log('Response status:', response.status);
+    if (!response.ok) {
+        throw new Error('Request failed');
+    }
+    return { ids, cleared };
+});
+
 const transactionsSlice = createSlice({
     name: 'transactions',
     initialState,
@@ -93,6 +125,15 @@ const transactionsSlice = createSlice({
             })
             .addCase(deleteTransaction.fulfilled, (state, action) => {
                 state.items = state.items.filter(item => item.id !== action.payload);
+            })
+            .addCase(bulkDeleteTransactions.fulfilled, (state, action) => {
+                state.items = state.items.filter(item => !action.payload.includes(item.id));
+            })
+            .addCase(bulkUpdateTransactionsStatus.fulfilled, (state, action) => {
+                const { ids, cleared } = action.payload;
+                state.items = state.items.map(item =>
+                    ids.includes(item.id) ? { ...item, cleared: cleared as Transaction['cleared'] } : item
+                );
             });
     },
 });
