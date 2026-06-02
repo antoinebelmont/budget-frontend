@@ -7,16 +7,18 @@ import { Transaction } from '../../types/apiTypes';
 import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, ArrowDownTrayIcon, CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import TransactionModal from './TransactionModal';
-import { format, startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
+import { startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import apiService from '../../services/api';
+import { formatDateForUser } from '../../utils/dateHelpers';
 
 const TransactionsList: React.FC = () => {
     const dispatch = useAppDispatch();
     const [searchParams] = useSearchParams();
     const { items: transactions, loading, filters, pagination } = useAppSelector((state) => state.transactions);
     const { items: categories } = useAppSelector((state) => state.categories);
+    const userDateFormat = useAppSelector((state) => state.auth.preferences?.date_format ?? 'Y-m-d');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [showFilters, setShowFilters] = useState(false);
@@ -483,7 +485,7 @@ const TransactionsList: React.FC = () => {
                                     />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-[var(--text-primary)]">
-                                    {format(new Date(transaction.date), 'MMM dd, yyyy')}
+                                    {formatDateForUser(transaction.date, userDateFormat)}
                                 </td>
                                 {showAccountColumn && (
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-[var(--text-primary)]">

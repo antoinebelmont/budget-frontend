@@ -28,6 +28,7 @@ export class AuthService {
         } finally {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
+            localStorage.removeItem('preferences');
         }
     }
 
@@ -46,6 +47,15 @@ export class AuthService {
 
     isAuthenticated(): boolean {
         return !!this.getToken();
+    }
+
+    getPreferences(): Record<string, unknown> | null {
+        const prefs = localStorage.getItem('preferences');
+        return prefs ? JSON.parse(prefs) : null;
+    }
+
+    setPreferences(prefs: Record<string, unknown>): void {
+        localStorage.setItem('preferences', JSON.stringify(prefs));
     }
 }
 

@@ -3,13 +3,14 @@ import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchSavedReports, deleteSavedReport, setCurrentTab, setFilters } from '../../store/slices/reportsSlice';
 import { BookmarkIcon, TrashIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { format } from 'date-fns';
+import { formatDateForUser } from '../../utils/dateHelpers';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 
 const SavedReports: React.FC = () => {
     const dispatch = useAppDispatch();
     const savedReports = useAppSelector((state) => state.reports.savedReports);
+    const userDateFormat = useAppSelector((state) => state.auth.preferences?.date_format ?? 'Y-m-d');
 
     useEffect(() => {
         dispatch(fetchSavedReports());
@@ -126,8 +127,8 @@ const SavedReports: React.FC = () => {
                                                 <div className="flex items-center text-[var(--text-secondary)]">
                                                     <ClockIcon className="h-4 w-4 mr-2" />
                                     <span>
-                    {format(new Date(report.filters.date_range.start_date), 'MMM dd, yyyy')} -{' '}
-                                        {format(new Date(report.filters.date_range.end_date), 'MMM dd, yyyy')}
+                    {formatDateForUser(report.filters.date_range.start_date, userDateFormat)} -{' '}
+                                        {formatDateForUser(report.filters.date_range.end_date, userDateFormat)}
                   </span>
                                 </div>
                             )}
@@ -149,7 +150,7 @@ const SavedReports: React.FC = () => {
 
                         <div className="mt-4 pt-4 border-t border-[var(--border-default)]">
                             <p className="text-xs text-[var(--text-muted)]">
-                                Saved {format(new Date(report.created_at), 'MMM dd, yyyy')}
+                                Saved {formatDateForUser(report.created_at, userDateFormat)}
                             </p>
                         </div>
 

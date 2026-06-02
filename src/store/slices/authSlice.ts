@@ -4,13 +4,22 @@ import { User, AuthResponse, LoginForm, RegisterForm } from '../../types/apiType
 import { authService } from '../../services/authService';
 import apiService from '../../services/api';
 
+const getStoredPreferences = (): Record<string, unknown> | null => {
+    try {
+        const raw = localStorage.getItem('preferences');
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+};
+
 const initialState: AuthState = {
     user: authService.getCurrentUser(),
     token: authService.getToken(),
     isAuthenticated: authService.isAuthenticated(),
     loading: false,
     error: null,
-    preferences: null,
+    preferences: getStoredPreferences(),
 };
 
 export const loginUser = createAsyncThunk<AuthResponse, LoginForm>(
@@ -18,8 +27,9 @@ export const loginUser = createAsyncThunk<AuthResponse, LoginForm>(
     async (credentials, { rejectWithValue }) => {
         try {
             return await authService.login(credentials);
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Login failed');
+        } catch (error: unknown) {
+            const e = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(e.response?.data?.message || 'Login failed');
         }
     }
 );
@@ -29,8 +39,9 @@ export const registerUser = createAsyncThunk<AuthResponse, RegisterForm>(
     async (userData, { rejectWithValue }) => {
         try {
             return await authService.register(userData);
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Registration failed');
+        } catch (error: unknown) {
+            const e = error as { response?: { data?: { message?: string } } };
+            return rejectWithValue(e.response?.data?.message || 'Registration failed');
         }
     }
 );
@@ -45,14 +56,14 @@ export const fetchCurrentUser = createAsyncThunk('auth/fetchCurrentUser', async 
 });
 
 export const fetchUserPreferences = createAsyncThunk('auth/fetchUserPreferences', async () => {
-    const response = await apiService.get<{ preferences: Record<string, any> }>('/user/preferences');
+    const response = await apiService.get<{ preferences: Record<string, unknown> }>('/user/preferences');
     return response.preferences;
 });
 
 export const updateUserPreferences = createAsyncThunk(
     'auth/updateUserPreferences',
-    async (preferences: Record<string, any>) => {
-        const response = await apiService.put<{ preferences: Record<string, any> }>('/user/preferences', { preferences });
+    async (preferences: Record<string, unknown>) => {
+        const response = await apiService.put<{ preferences: Record<string, unknown> }>('/user/preferences', { preferences });
         return response.preferences;
     }
 );
@@ -77,7 +88,6 @@ const authSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // Login
             .addCase(loginUser.pending, (state) => {
                 state.loading = true;
                 state.error = null;
@@ -94,7 +104,6 @@ const authSlice = createSlice({
                 state.error = action.payload as string;
                 state.isAuthenticated = false;
             })
-            // Register
             .addCase(registerUser.pending, (state) => {
                 state.loading = true;
                 state.error = null;
@@ -111,26 +120,25 @@ const authSlice = createSlice({
                 state.error = action.payload as string;
                 state.isAuthenticated = false;
             })
-            // Logout
             .addCase(logoutUser.fulfilled, (state) => {
                 state.user = null;
                 state.token = null;
                 state.isAuthenticated = false;
                 state.loading = false;
                 state.error = null;
+                state.preferences = null;
             })
-            // Fetch current user
             .addCase(fetchCurrentUser.fulfilled, (state, action) => {
                 state.user = action.payload;
                 localStorage.setItem('user', JSON.stringify(action.payload));
             })
-            // Fetch user preferences
             .addCase(fetchUserPreferences.fulfilled, (state, action) => {
                 state.preferences = action.payload;
+                authService.setPreferences(action.payload);
             })
-            // Update user preferences
             .addCase(updateUserPreferences.fulfilled, (state, action) => {
                 state.preferences = action.payload;
+                authService.setPreferences(action.payload);
             });
     },
 });

@@ -80,10 +80,13 @@ class ApiService {
         return response.data;
     }
 
-    public async uploadAndImport(file: File, accountId: number): Promise<ImportResult> {
+    public async uploadAndImport(file: File, accountId: number, dateFormat?: string): Promise<ImportResult> {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('account_id', String(accountId));
+        if (dateFormat) {
+            formData.append('date_format', dateFormat);
+        }
 
         const response: AxiosResponse<ImportResult> = await this.api.post('/transactions/import', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },

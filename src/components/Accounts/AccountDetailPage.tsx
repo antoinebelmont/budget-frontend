@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import TransactionModal from '../Transactions/TransactionModal';
 import AccountModal from './AccountModal';
-import { format } from 'date-fns';
+import { formatDateForUser } from '../../utils/dateHelpers';
 import toast from 'react-hot-toast';
 
 const AccountDetailPage: React.FC = () => {
@@ -25,6 +25,7 @@ const AccountDetailPage: React.FC = () => {
 
     const { currentAccount, loading: accountLoading } = useAppSelector((state) => state.accounts);
     const { items: transactions, loading: transactionsLoading } = useAppSelector((state) => state.transactions);
+    const userDateFormat = useAppSelector((state) => state.auth.preferences?.date_format ?? 'Y-m-d');
 
     const [isReconciling, setIsReconciling] = useState(false);
     const [reconcileBalance, setReconcileBalance] = useState('');
@@ -282,7 +283,7 @@ const AccountDetailPage: React.FC = () => {
                             transactions.slice(0, 10).map((transaction) => (
                                 <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-[var(--text-primary)]">
-                                        {format(new Date(transaction.date), 'MMM dd, yyyy')}
+                                        {formatDateForUser(transaction.date, userDateFormat)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">
                                         {transaction.payee?.name || '-'}
