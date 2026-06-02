@@ -56,6 +56,8 @@ export interface Category {
     budgeted: number;
     activity: number;
     available: number;
+    transactions_sum?: number;
+    monthly_available?: number;
     color?: string;
     hidden: boolean;
     created_at: string;
@@ -70,6 +72,7 @@ export interface Payee {
     auto_assign_category_id?: number;
     auto_assign_category?: Category;
     total_spent?: number;
+    transaction_count?: number;
     created_at: string;
     updated_at: string;
 }
@@ -150,6 +153,14 @@ export interface RegisterForm {
     password_confirmation: string;
     timezone?: string;
     currency?: string;
+}
+
+export interface CategoryForm {
+    name: string;
+    category_group_id: number;
+    budgeted?: number;
+    hidden?: boolean;
+    color?: string | null;
 }
 
 export interface AccountForm {

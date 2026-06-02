@@ -17,12 +17,14 @@ import {
 } from '@/types/apiTypes';
 export interface RootState {
     auth: AuthState;
-    accounts: AccountsState;
+    accounts: import('../store/slices/accountsSlice').AccountsState;
     budget: BudgetState;
     transactions: TransactionsState;
+    categories: import('../store/slices/categoriesSlice').CategoriesState;
     payees: PayeesState;
     goals: GoalsState;
     ui: UIState;
+    reports: ReportsState;
 }
 
 export interface AuthState {
@@ -39,6 +41,7 @@ export interface AccountsState {
     currentAccount: Account | null;
     loading: boolean;
     error: string | null;
+    sidebarAccounts: Array<{ id: number; name: string; type: string; transaction_count: number; has_transactions: boolean }>;
 }
 
 export interface BudgetState {

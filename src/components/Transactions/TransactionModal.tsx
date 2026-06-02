@@ -52,7 +52,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, accoun
     }, [dispatch]);
 
     const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<TransactionForm>({
-        resolver: yupResolver(schema),
+        resolver: yupResolver(schema) as any,
         defaultValues: transaction ? {
             account_id: transaction.account_id,
             date: transaction.date.split('T')[0],
@@ -64,7 +64,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, accoun
         } : {
             account_id: accountId,
             date: new Date().toISOString().split('T')[0],
-            amount: '',
+            amount: 0,
             cleared: 'uncleared',
         },
     });

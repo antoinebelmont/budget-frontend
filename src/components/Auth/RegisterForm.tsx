@@ -6,7 +6,7 @@ import * as yup from 'yup';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { registerUser } from '../../store/slices/authSlice';
-import { RegisterForm as RegisterFormType } from '../../types/api';
+import { RegisterForm as RegisterFormType } from '../../types/apiTypes';
 import toast from 'react-hot-toast';
 
 const schema = yup.object({

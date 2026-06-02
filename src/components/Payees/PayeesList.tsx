@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchPayees, deletePayee } from '../../store/slices/payeesSlice';
-import { Payee } from '../../types/api';
+import { Payee } from '../../types/apiTypes';
 import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import PayeeModal from './PayeeModal';
 import toast from 'react-hot-toast';
@@ -40,7 +40,7 @@ const PayeesList: React.FC = () => {
                 // Refresh the list to get updated totals
                 dispatch(fetchPayees());
             } catch (error) {
-                toast.error('Failed to delete payee', error);
+                toast.error('Failed to delete payee');
             }
         }
     };

@@ -80,7 +80,7 @@ export const fetchNetWorth = createAsyncThunk<NetWorthData>(
     }
 );
 
-export const fetchIncomeVsExpense = createAsyncThunk<IncomeVsExpenseData, number | void>(
+export const fetchIncomeVsExpense = createAsyncThunk<IncomeVsExpenseData, number | undefined>(
     'reports/fetchIncomeVsExpense',
     async (months = 12) => {
         return await reportsService.getIncomeVsExpense(months);
@@ -101,7 +101,7 @@ export const fetchCategoryTrend = createAsyncThunk<CategoryTrendData, { category
     }
 );
 
-export const fetchCashFlow = createAsyncThunk<CashFlowData, number | void>(
+export const fetchCashFlow = createAsyncThunk<CashFlowData, number | undefined>(
     'reports/fetchCashFlow',
     async (months = 12) => {
         return await reportsService.getCashFlow(months);

@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { Category, CategoryForm } from '../../types/apiTypes';
 import apiService from '../../services/api';
 
-interface CategoriesState {
+export interface CategoriesState {
     items: Category[];
     loading: boolean;
     error: string | null;

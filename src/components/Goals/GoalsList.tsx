@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchGoals, deleteGoal } from '../../store/slices/goalsSlice';
 import { fetchBudget } from '../../store/slices/budgetSlice';
-import { Goal } from '../../types/api';
+import { Goal } from '../../types/apiTypes';
 import { PlusIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import GoalCard from './GoalCard';
 import GoalModal from './GoalModal';

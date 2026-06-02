@@ -33,7 +33,7 @@ const PayeeModal: React.FC<PayeeModalProps> = ({ payee, onClose, onSuccess }) =>
     const isEditing = !!payee;
 
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<PayeeForm>({
-        resolver: yupResolver(schema),
+        resolver: yupResolver(schema) as any,
         defaultValues: payee ? {
             name: payee.name,
             auto_assign_category_id: payee.auto_assign_category_id || undefined,

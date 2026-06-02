@@ -8,7 +8,7 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { fundGoal, fetchGoals } from '../../store/slices/goalsSlice'; // ← ADD fetchGoals
 import { fetchAccounts } from '../../store/slices/accountsSlice';
 import { fetchBudget } from '../../store/slices/budgetSlice';
-import { Goal } from '../../types/api';
+import { Goal } from '../../types/apiTypes';
 import { formatCurrency } from '../../utils/goalHelpers';
 import toast from 'react-hot-toast';
 
@@ -39,7 +39,7 @@ const FundGoalModal: React.FC<FundGoalModalProps> = ({ goal, onClose }) => {
     }, [dispatch]);
 
     const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FundForm>({
-        resolver: yupResolver(schema),
+        resolver: yupResolver(schema) as any,
         defaultValues: {
             date: new Date().toISOString().split('T')[0],
             amount: goal.remaining_amount || 0,

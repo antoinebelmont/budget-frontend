@@ -88,10 +88,10 @@ const BudgetGrid: React.FC = () => {
     };
 
     // ✅ Safe calculation helpers that handle undefined/null values
-    const safeSum = (categories: Category[], field: keyof Pick<Category, 'budgeted' | 'transactions_sum' | 'monthly_available'>) => {
+    const safeSum = (categories: Category[], field: 'budgeted' | 'transactions_sum' | 'monthly_available') => {
         const result: number = categories.reduce((sum, cat) => {
             const value = cat[field];
-            return sum + (!isNaN(value) ? +value : 0);
+            return sum + (!isNaN(value as number) ? +(value as number) : 0);
         }, 0);
         console.log(field,result)
         return result;

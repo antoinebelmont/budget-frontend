@@ -48,7 +48,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ goal, onClose }) => {
     }, [dispatch]);
 
     const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<GoalForm>({
-        resolver: yupResolver(schema),
+        resolver: yupResolver(schema) as any,
         defaultValues: goal ? {
             category_id: goal.category_id,
             type: goal.type,
@@ -64,7 +64,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ goal, onClose }) => {
     const watchTargetAmount = watch('target_amount');
 
     // Filter out categories that already have goals (unless editing)
-    const availableCategories = categories.filter(cat => {
+    const availableCategories = categories.filter((cat: import('../../types/apiTypes').Category) => {
         if (isEditing && cat.id === goal.category_id) return true;
         return !goals.some(g => g.category_id === cat.id);
     });
@@ -135,7 +135,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ goal, onClose }) => {
                                         </label>
                                         <select {...register('category_id')} className="input">
                                             <option value="">Select a category...</option>
-                                            {availableCategories.map((category) => (
+                                            {availableCategories.map((category: import('../../types/apiTypes').Category) => (
                                                 <option key={category.id} value={category.id}>
                                                     {category.name}
                                                 </option>

@@ -7,7 +7,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAppDispatch } from '../../store';
 import { createAccount, updateAccount } from '../../store/slices/accountsSlice';
-import { Account, AccountForm } from '../../types/api';
+import { Account, AccountForm } from '../../types/apiTypes';
 import toast from 'react-hot-toast';
 
 interface AccountModalProps {

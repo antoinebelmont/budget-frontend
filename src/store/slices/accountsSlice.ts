@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { Account, AccountForm } from '@/types/apiTypes';
 import apiService from '@/services/api';
 
-interface AccountsState {
+export interface AccountsState {
     items: Account[];
     currentAccount: Account | null;
     loading: boolean;

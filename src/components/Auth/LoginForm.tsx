@@ -5,7 +5,7 @@ import * as yup from 'yup';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { loginUser, clearError } from '../../store/slices/authSlice';
-import { LoginForm as LoginFormType } from '../../types/api';
+import { LoginForm as LoginFormType } from '../../types/apiTypes';
 import toast from 'react-hot-toast';
 
 const schema: yup.ObjectSchema<LoginFormType> = yup.object({

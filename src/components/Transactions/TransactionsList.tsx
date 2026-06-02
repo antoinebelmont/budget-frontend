@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchTransactions, deleteTransaction, bulkDeleteTransactions, bulkUpdateTransactionsStatus, setFilters, clearFilters } from '../../store/slices/transactionsSlice';
 import { fetchCategories } from '../../store/slices/categoriesSlice';
-import { Transaction } from '../../types/api';
+import { Transaction } from '../../types/apiTypes';
 import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, ArrowDownTrayIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import TransactionModal from './TransactionModal';
@@ -166,8 +166,8 @@ const TransactionsList: React.FC = () => {
         setIsExporting(true);
         try {
             const params: Record<string, string> = {};
-            if (filters.account_id) params.account_id = filters.account_id;
-            if (filters.category_id) params.category_id = filters.category_id;
+            if (filters.account_id) params.account_id = String(filters.account_id);
+            if (filters.category_id) params.category_id = String(filters.category_id);
             if (filters.start_date) params.start_date = filters.start_date;
             if (filters.end_date) params.end_date = filters.end_date;
 

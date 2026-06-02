@@ -150,7 +150,7 @@ const NetWorthReport: React.FC = () => {
                     title="Total Accounts"
                     value={data?.accounts.length || 0}
                     format="number"
-                    icon={<TrendingUpIcon className="h-6 w-6 text-indigo-600" />}
+                    icon={<ArrowTrendingUpIcon className="h-6 w-6 text-indigo-600" />}
                     description="Active accounts"
                     loading={isLoading}
                 />

@@ -8,7 +8,7 @@ import * as yup from 'yup';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createCategory, updateCategory } from '../../store/slices/categoriesSlice';
 import { fetchBudget } from '../../store/slices/budgetSlice'; // ADD THIS IMPORT
-import { Category, CategoryForm } from '../../types/api';
+import { Category, CategoryForm } from '../../types/apiTypes';
 import toast from 'react-hot-toast';
 
 interface CategoryModalProps {
@@ -47,7 +47,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
         watch,
         formState: { errors, isSubmitting }
     } = useForm<CategoryForm>({
-        resolver: yupResolver(schema),
+        resolver: yupResolver(schema) as any,
         defaultValues: category ? {
             name: category.name,
             category_group_id: category.category_group_id,
