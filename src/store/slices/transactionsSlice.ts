@@ -30,7 +30,7 @@ const initialState: TransactionsState = {
 export const fetchTransactions = createAsyncThunk(
     'transactions/fetchTransactions',
     async (filters?: TransactionsState['filters']) => {
-        const response = await apiService.get<PaginatedResponse<Transaction>>('/transactions', filters);
+        const response = await apiService.get<any>('/transactions', filters);
         return response;
     }
 );
@@ -110,7 +110,14 @@ const transactionsSlice = createSlice({
             .addCase(fetchTransactions.fulfilled, (state, action) => {
                 state.loading = false;
                 state.items = action.payload.data;
-                state.pagination = action.payload.meta;
+                state.pagination = {
+                    current_page: action.payload.current_page,
+                    from: action.payload.from,
+                    last_page: action.payload.last_page,
+                    per_page: action.payload.per_page,
+                    to: action.payload.to,
+                    total: action.payload.total,
+                };
             })
             .addCase(fetchTransactions.rejected, (state, action) => {
                 state.loading = false;

@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchTransactions, deleteTransaction, bulkDeleteTransactions, bulkUpdateTransactionsStatus, setFilters, clearFilters } from '../../store/slices/transactionsSlice';
 import { fetchCategories } from '../../store/slices/categoriesSlice';
 import { Transaction } from '../../types/apiTypes';
-import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, ArrowDownTrayIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, ArrowDownTrayIcon, CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import TransactionModal from './TransactionModal';
 import { format, startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
@@ -66,12 +66,23 @@ const TransactionsList: React.FC = () => {
     useEffect(() => {
         if (initialized) {
             if (showAll) {
-                dispatch(fetchTransactions({ ...filters, per_page: 10000, page: 1 }));
+                const total = pagination?.total || 10000;
+                dispatch(fetchTransactions({ ...filters, per_page: total, page: 1 }));
             } else {
                 dispatch(fetchTransactions({ ...filters, per_page: pageSize, page: currentPage }));
             }
         }
     }, [dispatch, filters, initialized, pageSize, currentPage, showAll]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filters]);
+
+    useEffect(() => {
+        if (pagination && currentPage > pagination.last_page && pagination.last_page > 0) {
+            setCurrentPage(pagination.last_page);
+        }
+    }, [pagination, currentPage]);
 
     const handlePageSizeChange = (newSize: number) => {
         if (newSize === 10000) {
@@ -230,6 +241,23 @@ const TransactionsList: React.FC = () => {
     };
 
     const activeFiltersCount = Object.values(filters).filter(v => v !== undefined).length;
+
+    const getPageNumbers = () => {
+        if (!pagination) return [];
+        const cp = pagination.current_page;
+        const total = pagination.last_page;
+        if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+        const pages: (number | string)[] = [];
+        pages.push(1);
+        if (cp > 3) pages.push('...');
+        for (let i = Math.max(2, cp - 1); i <= Math.min(total - 1, cp + 1); i++) {
+            pages.push(i);
+        }
+        if (cp < total - 2) pages.push('...');
+        pages.push(total);
+        return pages;
+    };
 
     if (loading) {
         return (
@@ -538,6 +566,89 @@ const TransactionsList: React.FC = () => {
                     </tbody>
                 </table>
                 </div>
+
+                {/* Pagination */}
+                {pagination && pagination.last_page > 1 && (
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border-default)] bg-[var(--bg-surface)]">
+                        <div className="text-sm text-[var(--text-secondary)]">
+                            <span className="tabular-nums">
+                                {pagination.from}–{pagination.to}
+                            </span>
+                            {' '}of{' '}
+                            <span className="font-medium text-[var(--text-primary)] tabular-nums">
+                                {pagination.total}
+                            </span>
+                            {' '}transactions
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage <= 1}
+                                className={clsx(
+                                    'group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150',
+                                    'border border-[var(--border-default)] bg-[var(--bg-surface)]',
+                                    'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5',
+                                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[var(--border-default)] disabled:hover:bg-[var(--bg-surface)] disabled:hover:text-[var(--text-secondary)]'
+                                )}
+                                aria-label="Previous page"
+                            >
+                                <ChevronLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                                <span className="hidden sm:inline">Prev</span>
+                            </button>
+
+                            {getPageNumbers().map((page, index) =>
+                                page === '...' ? (
+                                    <span
+                                        key={`ellipsis-${index}`}
+                                        className="flex items-center justify-center w-9 h-9 text-sm text-[var(--text-muted)]"
+                                    >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-default)]" />
+                                    </span>
+                                ) : (
+                                    <button
+                                        key={page}
+                                        onClick={() => handlePageChange(page as number)}
+                                        className={clsx(
+                                            'flex items-center justify-center min-w-[36px] h-9 px-2 rounded-lg text-sm font-semibold transition-all duration-150',
+                                            currentPage === page
+                                                ? 'bg-[var(--accent)] text-white shadow-sm shadow-[var(--accent)]/30'
+                                                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]/8 border border-transparent hover:border-[var(--accent)]/30'
+                                        )}
+                                        aria-current={currentPage === page ? 'page' : undefined}
+                                    >
+                                        {page}
+                                    </button>
+                                )
+                            )}
+
+                            <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage >= pagination.last_page}
+                                className={clsx(
+                                    'group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150',
+                                    'border border-[var(--border-default)] bg-[var(--bg-surface)]',
+                                    'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5',
+                                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[var(--border-default)] disabled:hover:bg-[var(--bg-surface)] disabled:hover:text-[var(--text-secondary)]'
+                                )}
+                                aria-label="Next page"
+                            >
+                                <span className="hidden sm:inline">Next</span>
+                                <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Show all / single page — subtle footer */}
+                {(!pagination || pagination.last_page <= 1) && transactions.length > 0 && (
+                    <div className="flex items-center justify-end px-6 py-3 border-t border-[var(--border-default)] bg-[var(--bg-surface)]">
+                        <div className="text-sm text-[var(--text-muted)] tabular-nums">
+                            {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
+                            {pagination && ` · page ${pagination.current_page}`}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Transaction Modal */}
