@@ -15,7 +15,7 @@ import apiService from '../../services/api';
 const TransactionsList: React.FC = () => {
     const dispatch = useAppDispatch();
     const [searchParams] = useSearchParams();
-    const { items: transactions, loading, filters } = useAppSelector((state) => state.transactions);
+    const { items: transactions, loading, filters, pagination } = useAppSelector((state) => state.transactions);
     const { items: categories } = useAppSelector((state) => state.categories);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -23,6 +23,9 @@ const TransactionsList: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isExporting, setIsExporting] = useState(false);
     const [initialized, setInitialized] = useState(false);
+    const [pageSize, setPageSize] = useState(50);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [showAll, setShowAll] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
     const accountIdFromUrl = searchParams.get('account_id');
@@ -62,9 +65,27 @@ const TransactionsList: React.FC = () => {
 
     useEffect(() => {
         if (initialized) {
-            dispatch(fetchTransactions(filters));
+            if (showAll) {
+                dispatch(fetchTransactions({ ...filters, per_page: 10000, page: 1 }));
+            } else {
+                dispatch(fetchTransactions({ ...filters, per_page: pageSize, page: currentPage }));
+            }
         }
-    }, [dispatch, filters, initialized]);
+    }, [dispatch, filters, initialized, pageSize, currentPage, showAll]);
+
+    const handlePageSizeChange = (newSize: number) => {
+        if (newSize === 10000) {
+            setShowAll(true);
+        } else {
+            setShowAll(false);
+            setPageSize(newSize);
+            setCurrentPage(1);
+        }
+    };
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
 
     const handleDelete = async (transaction: Transaction) => {
         if (window.confirm(`Are you sure you want to delete this transaction?`)) {
@@ -225,11 +246,26 @@ const TransactionsList: React.FC = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Transactions</h1>
                     <p className="mt-1 text-sm text-gray-600 dark:text-[var(--text-secondary)]">
-                        {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
-                        {activeFiltersCount > 0 && ` (${activeFiltersCount} filter${activeFiltersCount !== 1 ? 's' : ''} active)`}
+                        {transactions.length > 0 && pagination
+                            ? `${pagination.total} total · showing ${pagination.from}-${pagination.to}`
+                            : `${transactions.length} transactions`}
                     </p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex items-center gap-3">
+                    {/* Page Size Selector */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)]">
+                        <span className="text-xs text-[var(--text-muted)]">Show</span>
+                        <select
+                            value={showAll ? 10000 : pageSize}
+                            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                            className="bg-transparent text-sm font-medium text-[var(--text-primary)] focus:outline-none cursor-pointer"
+                        >
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                            <option value={10000}>All</option>
+                        </select>
+                    </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={clsx(
@@ -361,40 +397,46 @@ const TransactionsList: React.FC = () => {
             )}
 
             {/* Transactions Table */}
-            <div className="card overflow-hidden">
-                <table className="min-w-full divide-y divide-[var(--border-default)]">
-                    <thead className="bg-gray-50 dark:bg-slate-800">
+            <div className="relative overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-lg">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[800px]">
+                    <thead className="bg-gradient-to-r from-[var(--bg-secondary)] via-[var(--bg-surface)] to-[var(--bg-secondary)] border-b-2 border-[var(--border-default)]">
                     <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase w-10">
+                        <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider w-12">
                             <input
                                 type="checkbox"
                                 checked={transactions.length > 0 && selectedIds.size === transactions.length}
                                 onChange={toggleSelectAll}
-                                className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-600"
+                                className="rounded border-[var(--border-default)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0"
                             />
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase">Date</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Date</th>
                         {showAccountColumn && (
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase">Account</th>
+                            <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Account</th>
                         )}
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase">Payee</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase">Category</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase">Memo</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase">Amount</th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase">Status</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-[var(--text-muted)] uppercase">Actions</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Payee</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Category</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Memo</th>
+                        <th className="px-6 py-4 text-right text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Amount</th>
+                        <th className="px-6 py-4 text-center text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 w-20"></th>
                     </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-[var(--bg-surface)] divide-y divide-[var(--border-default)]">
                     {transactions.length === 0 ? (
                         <tr>
-                            <td colSpan={showAccountColumn ? 9 : 8} className="px-6 py-12 text-center">
-                                <div className="text-gray-500">
-                                    <p className="text-lg font-medium">No transactions found</p>
-                                    <p className="text-sm mt-1">Add your first transaction to get started</p>
+                            <td colSpan={showAccountColumn ? 9 : 8} className="px-6 py-16 text-center">
+                                <div className="space-y-4">
+                                    <div className="mx-auto w-16 h-16 rounded-2xl bg-[var(--bg-secondary)] flex items-center justify-center">
+                                        <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-lg font-semibold text-[var(--text-primary)]">No transactions found</p>
+                                    <p className="text-sm text-[var(--text-muted)]">Add your first transaction to get started</p>
                                     <button
                                         onClick={() => setIsModalOpen(true)}
-                                        className="mt-4 btn-primary"
+                                        className="mt-2 mx-auto px-5 py-2.5 rounded-xl text-sm font-semibold bg-[var(--accent)] text-white hover:shadow-lg hover:shadow-[var(--accent)]/30 transition-all"
                                     >
                                         Add Transaction
                                     </button>
@@ -403,7 +445,7 @@ const TransactionsList: React.FC = () => {
                         </tr>
                     ) : (
                         transactions.map((transaction) => (
-                            <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                            <tr key={transaction.id} className="tx-table-row group hover:bg-[var(--accent)]/5 transition-colors duration-150">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <input
                                         type="checkbox"
@@ -420,49 +462,71 @@ const TransactionsList: React.FC = () => {
                                         {transaction.account?.name}
                                     </td>
                                 )}
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-[var(--text-primary)]">
-                                    {transaction.payee?.name || '-'}
+                                <td className="px-6 py-4">
+                                    {transaction.payee ? (
+                                        <span className="font-medium text-[var(--text-primary)]">{transaction.payee.name}</span>
+                                    ) : (
+                                        <span className="text-[var(--text-muted)] italic">No payee</span>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                     {transaction.category ? (
-                                        <div className="flex items-center">
+                                        <div className="flex items-center gap-2">
                                             {transaction.category.color && (
                                                 <span
-                                                    className="w-3 h-3 rounded-full mr-2"
+                                                    className="w-2.5 h-2.5 rounded-full ring-2 ring-[var(--bg-surface)]"
                                                     style={{ backgroundColor: transaction.category.color }}
                                                 />
                                             )}
-                                            {transaction.category.name}
+                                            <span className="text-[var(--text-primary)]">{transaction.category.name}</span>
                                         </div>
                                     ) : (
-                                        <span className="text-gray-400">Uncategorized</span>
+                                        <span className="text-[var(--text-muted)] italic">Uncategorized</span>
                                     )}
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-500 dark:text-[var(--text-muted)] max-w-xs truncate">
-                                    {transaction.memo || '-'}
+                                <td className="px-6 py-4">
+                                    {transaction.memo ? (
+                                        <span className="text-sm text-[var(--text-muted)] max-w-[160px] truncate block" title={transaction.memo}>
+                                            {transaction.memo}
+                                        </span>
+                                    ) : (
+                                        <span className="text-xs text-[var(--text-muted)]/50 italic">No memo</span>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <span className={transaction.amount < 0 ? 'text-red-600' : 'text-green-600'}>
-                      {transaction.amount < 0 ? '-' : '+'}{formatCurrency(transaction.amount)}
-                    </span>
+                    <span className={clsx(
+                                        'inline-flex px-2.5 py-1 rounded-lg text-sm font-bold tabular-nums',
+                                        transaction.amount < 0 
+                                            ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' 
+                                            : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                    )}>
+                                        {transaction.amount < 0 ? '-' : '+'}${Math.abs(transaction.amount).toFixed(2)}
+                                    </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center">
-                                    {getStatusBadge(transaction.cleared)}
+                                    <span className={clsx(
+                                        'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider',
+                                        transaction.cleared === 'cleared' && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+                                        transaction.cleared === 'uncleared' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+                                        transaction.cleared === 'reconciled' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                    )}>
+                                        {transaction.cleared}
+                                    </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                                    <div className="flex justify-end space-x-2">
+                                    <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                         <button
                                             onClick={() => {
                                                 setEditingTransaction(transaction);
                                                 setIsModalOpen(true);
                                             }}
-                                            className="p-1 text-gray-400 dark:text-[var(--text-muted)] hover:text-primary-600"
+                                            className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-all"
                                         >
                                             <PencilIcon className="h-4 w-4" />
                                         </button>
                                         <button
                                             onClick={() => handleDelete(transaction)}
-                                            className="p-1 text-gray-400 dark:text-[var(--text-muted)] hover:text-danger-600"
+                                            className="p-2 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-all"
                                         >
                                             <TrashIcon className="h-4 w-4" />
                                         </button>
@@ -473,6 +537,7 @@ const TransactionsList: React.FC = () => {
                     )}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {/* Transaction Modal */}

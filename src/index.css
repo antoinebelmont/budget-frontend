@@ -1,8 +1,7 @@
 /* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @variant dark (&:where(.dark, .dark *));
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* Custom theme configuration */
 @theme {
@@ -35,6 +34,8 @@
   --text-primary: #111827;
   --text-secondary: #4b5563;
   --text-muted: #9ca3af;
+  --accent: #3b82f6;
+  --bulk-bar-accent: rgba(59, 130, 246, 0.08);
 }
 
 .dark {
@@ -45,6 +46,8 @@
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
+  --accent: #3b82f6;
+  --bulk-bar-accent: rgba(59, 130, 246, 0.15);
 }
 
 /* Custom component styles - Direct CSS classes (no @apply) */
