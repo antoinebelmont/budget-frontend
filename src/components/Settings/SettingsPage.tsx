@@ -10,6 +10,7 @@ const SettingsPage: React.FC = () => {
     const theme = useAppSelector((state) => state.ui.theme);
     const { user, preferences } = useAppSelector((state) => state.auth);
     const [showTransactionCounts, setShowTransactionCounts] = useState(false);
+    const [dateFormat, setDateFormat] = useState('m/d/Y');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -19,8 +20,20 @@ const SettingsPage: React.FC = () => {
     useEffect(() => {
         if (preferences) {
             setShowTransactionCounts(preferences.show_transaction_counts ?? false);
+            setDateFormat(preferences.date_format ?? 'm/d/Y');
         }
     }, [preferences]);
+
+    const handleDateFormatChange = async (newFormat: string) => {
+        setDateFormat(newFormat);
+        try {
+            await dispatch(updateUserPreferences({ date_format: newFormat })).unwrap();
+            toast.success('Date format saved');
+        } catch (error) {
+            setDateFormat(preferences?.date_format ?? 'm/d/Y');
+            toast.error('Failed to save date format');
+        }
+    };
 
     const handleTransactionCountsToggle = async () => {
         const newValue = !showTransactionCounts;
@@ -101,7 +114,7 @@ const SettingsPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="card p-6 space-y-4">
+<div className="card p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">Preferences</h2>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -113,6 +126,23 @@ const SettingsPage: React.FC = () => {
                         <label className="block text-sm font-medium text-[var(--text-secondary)]">Timezone</label>
                         <p className="mt-1 text-sm text-[var(--text-primary)]">{user?.timezone || 'UTC'}</p>
                     </div>
+                </div>
+
+                <div className="pt-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Date Format (for imports)</label>
+                    <select
+                        value={dateFormat}
+                        onChange={(e) => handleDateFormatChange(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)] border-[var(--border-default)] focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    >
+                        <option value="m/d/Y">MM/DD/YYYY (US - Dec 03 2026)</option>
+                        <option value="d/m/Y">DD/MM/YYYY (EU - 03/12/2026)</option>
+                        <option value="Y-m-d">YYYY-MM-DD (ISO - 2026-12-03)</option>
+                        <option value="d-m-Y">DD-MM-YYYY (03-12-2026)</option>
+                    </select>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                        This format will be used when importing transactions from CSV files
+                    </p>
                 </div>
             </div>
 

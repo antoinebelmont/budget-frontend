@@ -14,6 +14,8 @@ interface TransactionsState {
         start_date?: string;
         end_date?: string;
         search?: string;
+        per_page?: number;
+        page?: number;
     };
 }
 

@@ -9,6 +9,23 @@ export interface DateRangeOption {
     end: Date;
 }
 
+const DATE_FORMAT_MAP: Record<string, string> = {
+    'm/d/Y': 'MM/dd/yyyy',
+    'd/m/Y': 'dd/MM/yyyy',
+    'Y-m-d': 'yyyy-MM-dd',
+    'd-m-Y': 'dd-MM-yyyy',
+};
+
+export const getDateFormatForDisplay = (userDateFormat: string): string => {
+    return DATE_FORMAT_MAP[userDateFormat] || 'MM/dd/yyyy';
+};
+
+export const formatDateForUser = (dateString: string, userDateFormat: string): string => {
+    const date = new Date(dateString.split('T')[0] + 'T12:00:00');
+    const displayFormat = getDateFormatForDisplay(userDateFormat);
+    return format(date, displayFormat);
+};
+
 export const getDateRangeOptions = (): DateRangeOption[] => {
     const today = new Date();
 
