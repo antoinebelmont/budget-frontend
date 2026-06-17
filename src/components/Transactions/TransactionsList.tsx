@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchTransactions, deleteTransaction, bulkDeleteTransactions, bulkUpdateTransactionsStatus, setFilters, clearFilters } from '../../store/slices/transactionsSlice';
+import { fetchTransactions, deleteTransaction, bulkDeleteTransactions, bulkUpdateTransactionsStatus, bulkUpdateCategory, setFilters, clearFilters } from '../../store/slices/transactionsSlice';
 import { fetchCategories } from '../../store/slices/categoriesSlice';
 import { Transaction } from '../../types/apiTypes';
-import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, ArrowDownTrayIcon, CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, ArrowDownTrayIcon, CheckCircleIcon, ChevronLeftIcon, ChevronRightIcon, FolderOpenIcon } from '@heroicons/react/24/outline';
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import TransactionModal from './TransactionModal';
 import { startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
@@ -29,6 +29,11 @@ const TransactionsList: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [showAll, setShowAll] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [bulkStatus, setBulkStatus] = useState<'cleared' | 'uncleared' | 'reconciled' | ''>('');
+    const [bulkCategory, setBulkCategory] = useState<number | ''>('');
+    const [categorySearchTerm, setCategorySearchTerm] = useState('');
+    const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+    const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
     const accountIdFromUrl = searchParams.get('account_id');
     const showAccountColumn = !accountIdFromUrl;
@@ -36,6 +41,31 @@ const TransactionsList: React.FC = () => {
     useEffect(() => {
         dispatch(fetchCategories());
     }, [dispatch]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
+                setCategoryDropdownOpen(false);
+            }
+        };
+        if (categoryDropdownOpen) {
+            document.addEventListener('mousedown', handleClick);
+        }
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [categoryDropdownOpen]);
+
+    // Reset search when dropdown closes
+    useEffect(() => {
+        if (!categoryDropdownOpen) {
+            setCategorySearchTerm('');
+        }
+    }, [categoryDropdownOpen]);
+
+    const selectedCategory = categories.find((c) => c.id === bulkCategory);
+    const filteredCategories = categorySearchTerm.trim() === ''
+        ? categories
+        : categories.filter((c) => c.name.toLowerCase().includes(categorySearchTerm.toLowerCase()));
 
     useEffect(() => {
         if (!initialized) {
@@ -124,19 +154,30 @@ const TransactionsList: React.FC = () => {
         }
     };
 
-    const [bulkStatus, setBulkStatus] = useState<'cleared' | 'uncleared' | 'reconciled' | ''>('');
-
     const handleBulkUpdateStatus = async () => {
-        alert("prue")
         if (selectedIds.size === 0 || !bulkStatus) return;
         try {
             await dispatch(bulkUpdateTransactionsStatus({ ids: Array.from(selectedIds), cleared: bulkStatus })).unwrap();
             toast.success(`${selectedIds.size} transactions updated`);
             setBulkStatus('');
             setSelectedIds(new Set());
-        } catch (error) {
-            console.error('Bulk update failed:', error);
-            toast.error('Failed to update transactions mdfkr');
+            dispatch(fetchTransactions(filters));
+        } catch {
+            toast.error('Failed to update transactions');
+        }
+    };
+
+    const handleBulkUpdateCategory = async () => {
+        if (selectedIds.size === 0 || bulkCategory === '') return;
+        try {
+            const categoryId = bulkCategory === -1 ? null : Number(bulkCategory);
+            await dispatch(bulkUpdateCategory({ ids: Array.from(selectedIds), category_id: categoryId })).unwrap();
+            toast.success(`${selectedIds.size} transactions updated`);
+            setBulkCategory('');
+            setSelectedIds(new Set());
+            dispatch(fetchTransactions(filters));
+        } catch {
+            toast.error('Failed to update category');
         }
     };
 
@@ -337,17 +378,29 @@ const TransactionsList: React.FC = () => {
 
             {/* Bulk Actions Bar */}
             {selectedIds.size > 0 && (
-                <div className="card p-4 flex items-center justify-between bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
-                    <span className="text-sm text-primary-700 dark:text-primary-300">
-                        {selectedIds.size} transaction{selectedIds.size !== 1 ? 's' : ''} selected
-                    </span>
-                    <div className="flex gap-2 items-center">
+                <div className="relative z-50 rounded-xl border border-[var(--accent)]/40 bg-[var(--bulk-bar-accent)] dark:bg-primary-900/20 backdrop-blur-sm p-3 flex items-center gap-3 shadow-sm">
+                    {/* Selection badge */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent)] text-white text-xs font-bold">
+                            {selectedIds.size}
+                        </span>
+                        <span className="text-sm font-medium text-[var(--text-primary)] whitespace-nowrap">
+                            selected
+                        </span>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-7 w-px bg-[var(--border-default)] flex-shrink-0" aria-hidden />
+
+                    {/* Status selector */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <CheckCircleIcon className="h-4 w-4 text-[var(--text-muted)] flex-shrink-0" />
                         <select
                             value={bulkStatus}
                             onChange={(e) => setBulkStatus(e.target.value as 'cleared' | 'uncleared' | 'reconciled' | '')}
-                            className="input text-sm py-1.5"
+                            className="bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] text-xs rounded-lg px-2 py-1.5 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer"
                         >
-                            <option value="">Set status...</option>
+                            <option value="">Status</option>
                             <option value="cleared">Cleared</option>
                             <option value="uncleared">Pending</option>
                             <option value="reconciled">Reconciled</option>
@@ -355,25 +408,110 @@ const TransactionsList: React.FC = () => {
                         <button
                             onClick={handleBulkUpdateStatus}
                             disabled={!bulkStatus}
-                            className="btn-secondary flex items-center text-sm disabled:opacity-50"
+                            className="btn-secondary flex items-center text-xs px-2.5 py-1.5 disabled:opacity-40"
                         >
-                            <CheckCircleIcon className="h-4 w-4 mr-1" />
-                            Update Status
-                        </button>
-                        <button
-                            onClick={() => setSelectedIds(new Set())}
-                            className="btn-secondary text-sm"
-                        >
-                            Clear
-                        </button>
-                        <button
-                            onClick={handleBulkDelete}
-                            className="btn-danger flex items-center text-sm"
-                        >
-                            <TrashIcon className="h-4 w-4 mr-1" />
-                            Delete
+                            Apply
                         </button>
                     </div>
+
+                    {/* Divider */}
+                    <div className="h-7 w-px bg-[var(--border-default)] flex-shrink-0" aria-hidden />
+
+                    {/* Category selector — pure React dropdown */}
+                    <div className="flex items-center gap-2 flex-1 min-w-0 relative" ref={categoryDropdownRef}>
+                        <FolderOpenIcon className="h-4 w-4 text-[var(--text-muted)] flex-shrink-0" />
+
+                        {/* Trigger */}
+                        <button
+                            type="button"
+                            onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                            className="flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] text-xs text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors min-w-[140px] max-w-[200px] flex-1"
+                        >
+                            <span className="flex-1 text-left truncate">
+                                {selectedCategory ? selectedCategory.name : bulkCategory === -1 ? '— Remove category —' : 'Set category...'}
+                            </span>
+                            <svg className={`w-3 h-3 text-[var(--text-muted)] flex-shrink-0 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m6 9 4 4 4-4" />
+                            </svg>
+                        </button>
+
+                        {/* Dropdown */}
+                        {categoryDropdownOpen && (
+                            <div className="absolute z-50 mt-1 w-64 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xl overflow-hidden"
+                                style={{ top: '100%', left: 0 }}>
+                                {/* Search */}
+                                <div className="p-2 border-b border-[var(--border-default)]">
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        value={categorySearchTerm}
+                                        onChange={(e) => setCategorySearchTerm(e.target.value)}
+                                        placeholder="Search category..."
+                                        className="w-full h-7 text-xs pl-2 pr-6 rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                                    />
+                                </div>
+                                {/* Options list */}
+                                <div className="max-h-48 overflow-y-auto py-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setBulkCategory(-1); setCategoryDropdownOpen(false); }}
+                                        className="w-full text-left px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bulk-bar-accent)] transition-colors"
+                                    >
+                                        — Remove category —
+                                    </button>
+                                    {filteredCategories.length === 0 ? (
+                                        <p className="px-3 py-2 text-xs text-[var(--text-muted)] italic">No categories found</p>
+                                    ) : (
+                                        filteredCategories.map((cat) => (
+                                            <button
+                                                key={cat.id}
+                                                type="button"
+                                                onClick={() => { setBulkCategory(cat.id); setCategoryDropdownOpen(false); }}
+                                                className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition-colors ${
+                                                    bulkCategory === cat.id
+                                                        ? 'bg-[var(--accent)]/10 text-[var(--accent)] font-medium'
+                                                        : 'text-[var(--text-primary)] hover:bg-[var(--bulk-bar-accent)]'
+                                                }`}
+                                            >
+                                                {cat.color && (
+                                                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                                                )}
+                                                <span className="truncate">{cat.name}</span>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        <button
+                            onClick={handleBulkUpdateCategory}
+                            disabled={bulkCategory === ''}
+                            className="btn-secondary flex items-center text-xs px-2.5 py-1.5 disabled:opacity-40 flex-shrink-0"
+                        >
+                            Apply
+                        </button>
+                    </div>
+
+                    {/* Spacer */}
+                    <div className="flex-1" />
+
+                    {/* Clear */}
+                    <button
+                        onClick={() => setSelectedIds(new Set())}
+                        className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors px-1.5 py-1 rounded-lg hover:bg-[var(--border-default)] flex-shrink-0"
+                    >
+                        Clear
+                    </button>
+
+                    {/* Delete */}
+                    <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-1.5 text-xs font-medium text-danger-600 dark:text-danger-400 hover:text-danger-700 dark:hover:text-danger-300 px-2.5 py-1.5 rounded-lg hover:bg-danger-50 dark:hover:bg-danger-900/20 transition-colors flex-shrink-0"
+                    >
+                        <TrashIcon className="h-4 w-4" />
+                        Delete
+                    </button>
                 </div>
             )}
 

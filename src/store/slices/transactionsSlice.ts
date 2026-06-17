@@ -71,24 +71,16 @@ export const bulkUpdateTransactionsStatus = createAsyncThunk<
     { ids: number[]; cleared: string },
     { ids: number[]; cleared: 'cleared' | 'uncleared' | 'reconciled' }
 >('transactions/bulkUpdateTransactionsStatus', async ({ ids, cleared }) => {
-    console.log('bulkUpdateTransactionsStatus thunk called', { ids, cleared });
-    const token = localStorage.getItem('auth_token');
-    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-    console.log('Making request to:', `${baseURL}/transactions/bulk-update-status`);
-    const response = await fetch(`${baseURL}/transactions/bulk-update-status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : '',
-        },
-        body: JSON.stringify({ ids, cleared }),
-    });
-    console.log('Response status:', response.status);
-    if (!response.ok) {
-        throw new Error('Request failed');
-    }
+    await apiService.post<{ transactions: Transaction[] }>('/transactions/bulk-update-status', { ids, cleared });
     return { ids, cleared };
+});
+
+export const bulkUpdateCategory = createAsyncThunk<
+    { ids: number[]; category_id: number | null },
+    { ids: number[]; category_id: number | null }
+>('transactions/bulkUpdateCategory', async ({ ids, category_id }) => {
+    await apiService.post<{ transactions: Transaction[] }>('/transactions/bulk-update-category', { ids, category_id });
+    return { ids, category_id };
 });
 
 const transactionsSlice = createSlice({
@@ -142,6 +134,12 @@ const transactionsSlice = createSlice({
                 const { ids, cleared } = action.payload;
                 state.items = state.items.map(item =>
                     ids.includes(item.id) ? { ...item, cleared: cleared as Transaction['cleared'] } : item
+                );
+            })
+            .addCase(bulkUpdateCategory.fulfilled, (state, action) => {
+                const { ids, category_id } = action.payload;
+                state.items = state.items.map(item =>
+                    ids.includes(item.id) ? { ...item, category_id: category_id ?? undefined, category: category_id ? item.category : undefined } : item
                 );
             });
     },
