@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchTransactions, deleteTransaction, bulkDeleteTransactions, bulkUpdateTransactionsStatus, bulkUpdateCategory, setFilters, clearFilters } from '../../store/slices/transactionsSlice';
@@ -12,6 +12,7 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import apiService from '../../services/api';
 import { formatDateForUser } from '../../utils/dateHelpers';
+import { CategorySelect } from '../ui/CategorySelect';
 
 const TransactionsList: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -31,9 +32,6 @@ const TransactionsList: React.FC = () => {
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [bulkStatus, setBulkStatus] = useState<'cleared' | 'uncleared' | 'reconciled' | ''>('');
     const [bulkCategory, setBulkCategory] = useState<number | ''>('');
-    const [categorySearchTerm, setCategorySearchTerm] = useState('');
-    const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-    const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
     const accountIdFromUrl = searchParams.get('account_id');
     const showAccountColumn = !accountIdFromUrl;
@@ -41,31 +39,6 @@ const TransactionsList: React.FC = () => {
     useEffect(() => {
         dispatch(fetchCategories());
     }, [dispatch]);
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClick = (e: MouseEvent) => {
-            if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
-                setCategoryDropdownOpen(false);
-            }
-        };
-        if (categoryDropdownOpen) {
-            document.addEventListener('mousedown', handleClick);
-        }
-        return () => document.removeEventListener('mousedown', handleClick);
-    }, [categoryDropdownOpen]);
-
-    // Reset search when dropdown closes
-    useEffect(() => {
-        if (!categoryDropdownOpen) {
-            setCategorySearchTerm('');
-        }
-    }, [categoryDropdownOpen]);
-
-    const selectedCategory = categories.find((c) => c.id === bulkCategory);
-    const filteredCategories = categorySearchTerm.trim() === ''
-        ? categories
-        : categories.filter((c) => c.name.toLowerCase().includes(categorySearchTerm.toLowerCase()));
 
     useEffect(() => {
         if (!initialized) {
@@ -417,73 +390,16 @@ const TransactionsList: React.FC = () => {
                     {/* Divider */}
                     <div className="h-7 w-px bg-[var(--border-default)] flex-shrink-0" aria-hidden />
 
-                    {/* Category selector — pure React dropdown */}
-                    <div className="flex items-center gap-2 flex-1 min-w-0 relative" ref={categoryDropdownRef}>
+                    {/* Category selector */}
+                    <div className="flex items-center gap-2">
                         <FolderOpenIcon className="h-4 w-4 text-[var(--text-muted)] flex-shrink-0" />
-
-                        {/* Trigger */}
-                        <button
-                            type="button"
-                            onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-                            className="flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] text-xs text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors min-w-[140px] max-w-[200px] flex-1"
-                        >
-                            <span className="flex-1 text-left truncate">
-                                {selectedCategory ? selectedCategory.name : bulkCategory === -1 ? '— Remove category —' : 'Set category...'}
-                            </span>
-                            <svg className={`w-3 h-3 text-[var(--text-muted)] flex-shrink-0 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 20 20" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m6 9 4 4 4-4" />
-                            </svg>
-                        </button>
-
-                        {/* Dropdown */}
-                        {categoryDropdownOpen && (
-                            <div className="absolute z-50 mt-1 w-64 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xl overflow-hidden"
-                                style={{ top: '100%', left: 0 }}>
-                                {/* Search */}
-                                <div className="p-2 border-b border-[var(--border-default)]">
-                                    <input
-                                        autoFocus
-                                        type="text"
-                                        value={categorySearchTerm}
-                                        onChange={(e) => setCategorySearchTerm(e.target.value)}
-                                        placeholder="Search category..."
-                                        className="w-full h-7 text-xs pl-2 pr-6 rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-                                    />
-                                </div>
-                                {/* Options list */}
-                                <div className="max-h-48 overflow-y-auto py-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => { setBulkCategory(-1); setCategoryDropdownOpen(false); }}
-                                        className="w-full text-left px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bulk-bar-accent)] transition-colors"
-                                    >
-                                        — Remove category —
-                                    </button>
-                                    {filteredCategories.length === 0 ? (
-                                        <p className="px-3 py-2 text-xs text-[var(--text-muted)] italic">No categories found</p>
-                                    ) : (
-                                        filteredCategories.map((cat) => (
-                                            <button
-                                                key={cat.id}
-                                                type="button"
-                                                onClick={() => { setBulkCategory(cat.id); setCategoryDropdownOpen(false); }}
-                                                className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition-colors ${
-                                                    bulkCategory === cat.id
-                                                        ? 'bg-[var(--accent)]/10 text-[var(--accent)] font-medium'
-                                                        : 'text-[var(--text-primary)] hover:bg-[var(--bulk-bar-accent)]'
-                                                }`}
-                                            >
-                                                {cat.color && (
-                                                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                                                )}
-                                                <span className="truncate">{cat.name}</span>
-                                            </button>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
+                        <CategorySelect
+                            value={bulkCategory}
+                            onChange={(val) => setBulkCategory(val === null ? '' : val as number)}
+                            placeholder="Set category..."
+                            showRemoveOption
+                            className="flex-1 min-w-[140px] max-w-[200px]"
+                        />
                         <button
                             onClick={handleBulkUpdateCategory}
                             disabled={bulkCategory === ''}
@@ -529,18 +445,13 @@ const TransactionsList: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1">Category</label>
-                            <select
-                                value={filters.category_id || ''}
-                                onChange={(e) => handleFilterChange('category_id', e.target.value)}
-                                className="input"
-                            >
-                                <option value="">All categories</option>
-                                {categories.map((category) => (
-                                    <option key={category.id} value={category.id}>
-                                        {category.name}
-                                    </option>
-                                ))}
-                            </select>
+                            <CategorySelect
+                                value={filters.category_id ?? null}
+                                onChange={(val) => handleFilterChange('category_id', val ?? '')}
+                                placeholder="All categories"
+                                showAllOption
+                                allOptionLabel="All categories"
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1">Start Date</label>

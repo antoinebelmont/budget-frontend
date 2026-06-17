@@ -1,7 +1,7 @@
 import React, { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -11,6 +11,7 @@ import { fetchCategories } from '../../store/slices/categoriesSlice';
 import { fetchPayees } from '../../store/slices/payeesSlice';
 import { Transaction, TransactionForm } from '../../types/apiTypes';
 import PayeeModal from '../Payees/PayeeModal';
+import { CategorySelect } from '../ui/CategorySelect';
 import toast from 'react-hot-toast';
 
 interface TransactionModalProps {
@@ -51,7 +52,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, accoun
         dispatch(fetchPayees());
     }, [dispatch]);
 
-    const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<TransactionForm>({
+    const { register, handleSubmit, watch, setValue, reset, control, formState: { errors, isSubmitting } } = useForm<TransactionForm>({
         resolver: yupResolver(schema) as any,
         defaultValues: transaction ? {
             account_id: transaction.account_id,
@@ -264,14 +265,17 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, accoun
                                                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                                                     Category
                                                 </label>
-                                                <select {...register('category_id')} className="input">
-                                                    <option value="">Select category...</option>
-                                                    {categories.map((category) => (
-                                                        <option key={category.id} value={category.id}>
-                                                            {category.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                <Controller
+                                                    name="category_id"
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <CategorySelect
+                                                            value={field.value ?? null}
+                                                            onChange={(val) => field.onChange(val ?? null)}
+                                                            placeholder="Select category..."
+                                                        />
+                                                    )}
+                                                />
                                             </div>
 
                                             <div>

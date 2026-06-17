@@ -173,7 +173,7 @@ const NetWorthReport: React.FC = () => {
                                     cx="50%"
                                     cy="50%"
                                     labelLine={false}
-                                    label={(entry) => `${((entry.value / (data?.net_worth || 1)) * 100).toFixed(0)}%`}
+                                    label={(entry) => `${(((entry.value as number) / (data?.net_worth || 1)) * 100).toFixed(0)}%`}
                                     outerRadius={120}
                                     fill="#8884d8"
                                     dataKey="value"
