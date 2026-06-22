@@ -19,11 +19,11 @@ export const fetchCategories = createAsyncThunk('categories/fetchCategories', as
     return response.categories;
 });
 
-export const createCategory = createAsyncThunk<Category, CategoryForm>(
+export const createCategory = createAsyncThunk<{ category: Category; duplicate: boolean }, CategoryForm>(
     'categories/createCategory',
     async (categoryData) => {
-        const response = await apiService.post<{ category: Category }>('/categories', categoryData);
-        return response.category;
+        const response = await apiService.post<{ category: Category; duplicate: boolean }>('/categories', categoryData);
+        return response;
     }
 );
 
@@ -69,7 +69,10 @@ const categoriesSlice = createSlice({
                 state.error = action.error.message || 'Failed to fetch categories';
             })
             .addCase(createCategory.fulfilled, (state, action) => {
-                state.items.push(action.payload);
+                // Only add to items if it's a new category (not a duplicate)
+                if (!action.payload.duplicate) {
+                    state.items.push(action.payload.category);
+                }
             })
             .addCase(updateCategory.fulfilled, (state, action) => {
                 const index = state.items.findIndex(item => item.id === action.payload.id);

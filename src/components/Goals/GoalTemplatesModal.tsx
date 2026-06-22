@@ -47,7 +47,7 @@ const GoalTemplatesModal: React.FC<GoalTemplatesModalProps> = ({ onClose }) => {
 
             // Then create the goal
             const goalData: any = {
-                category_id: categoryResponse.id,
+                category_id: categoryResponse.category.id,
                 type: selectedTemplate.type,
             };
 

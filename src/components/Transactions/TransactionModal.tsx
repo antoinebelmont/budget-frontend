@@ -7,11 +7,11 @@ import * as yup from 'yup';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createTransaction, updateTransaction } from '../../store/slices/transactionsSlice';
 import { fetchAccounts } from '../../store/slices/accountsSlice';
-import { fetchCategories } from '../../store/slices/categoriesSlice';
+import { fetchCategories, createCategory } from '../../store/slices/categoriesSlice';
 import { fetchPayees } from '../../store/slices/payeesSlice';
-import { Transaction, TransactionForm } from '../../types/apiTypes';
+import { Transaction, TransactionForm, CategoryForm } from '../../types/apiTypes';
 import PayeeModal from '../Payees/PayeeModal';
-import { CategorySelect } from '../ui/CategorySelect';
+import { CategorySelect, PendingCategoryInfo } from '../ui/CategorySelect';
 import toast from 'react-hot-toast';
 
 interface TransactionModalProps {
@@ -45,12 +45,21 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, accoun
     const [transactionType, setTransactionType] = useState<'expense' | 'income'>(
         transaction ? (transaction.amount < 0 ? 'expense' : 'income') : 'expense'
     );
+    const [pendingCategories, setPendingCategories] = useState<Map<string, CategoryForm>>(new Map());
 
     useEffect(() => {
         dispatch(fetchAccounts());
         dispatch(fetchCategories());
         dispatch(fetchPayees());
     }, [dispatch]);
+
+    // Cleanup pending categories when modal closes
+    useEffect(() => {
+        return () => {
+            // Note: Categories created will remain in Redux even if transaction is cancelled
+            // This is by design per BR-003 (Transaction Rollback Behavior)
+        };
+    }, []);
 
     const { register, handleSubmit, watch, setValue, reset, control, formState: { errors, isSubmitting } } = useForm<TransactionForm>({
         resolver: yupResolver(schema) as any,
@@ -101,8 +110,39 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, accoun
 
     const onSubmit = async (data: TransactionForm) => {
         try {
+            let finalCategoryId = data.category_id;
             const amount = transactionType === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount);
-            const transactionData = { ...data, amount };
+
+            // Handle pending categories: create them before saving transaction
+            if (pendingCategories.size > 0 && finalCategoryId !== null && finalCategoryId !== undefined) {
+                // Check if the category_id is a negative value (pending category marker)
+                if (finalCategoryId < 0) {
+                    // Find the pending category that was selected
+                    const pendingEntry = Array.from(pendingCategories.entries()).find(([tempId]) => {
+                        const pendingValue = -Number(tempId.split('_')[1]) - 1;
+                        return pendingValue === finalCategoryId;
+                    });
+
+                    if (pendingEntry) {
+                        const [tempId, formData] = pendingEntry;
+                        try {
+                            const result = await dispatch(createCategory(formData)).unwrap();
+                            finalCategoryId = result.category.id;
+                            // Clean up the pending category after successful creation
+                            setPendingCategories((prev) => {
+                                const next = new Map(prev);
+                                next.delete(tempId);
+                                return next;
+                            });
+                        } catch (error: any) {
+                            toast.error(error.message || 'Failed to create pending category');
+                            return;
+                        }
+                    }
+                }
+            }
+
+            const transactionData = { ...data, amount, category_id: finalCategoryId };
 
             if (isEditing) {
                 await dispatch(updateTransaction({ id: transaction.id, ...transactionData })).unwrap();
@@ -271,8 +311,19 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, accoun
                                                     render={({ field }) => (
                                                         <CategorySelect
                                                             value={field.value ?? null}
-                                                            onChange={(val) => field.onChange(val ?? null)}
+                                                            onChange={(val) => {
+                                                                field.onChange(val ?? null);
+                                                            }}
                                                             placeholder="Select category..."
+                                                            onPendingCategory={(pending: PendingCategoryInfo) => {
+                                                                const pendingValue = -Number(pending.tempId.split('_')[1]) - 1;
+                                                                setPendingCategories((prev) => {
+                                                                    const next = new Map(prev);
+                                                                    next.set(pending.tempId, pending.formData);
+                                                                    return next;
+                                                                });
+                                                                field.onChange(pendingValue);
+                                                            }}
                                                         />
                                                     )}
                                                 />

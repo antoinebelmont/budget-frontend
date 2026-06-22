@@ -65,16 +65,21 @@ const budgetSlice = createSlice({
                 });
             })
             .addCase(createCategory.fulfilled, (state, action) => {
+                // Only add if it's a new category (not a duplicate from backend)
+                if (action.payload.duplicate) {
+                    return;
+                }
+                const category = action.payload.category;
                 const group = state.categoryGroups.find(
-                    g => g.id === action.payload.category_group_id
+                    g => g.id === category.category_group_id
                 );
                 if (group) {
                     // ✅ Ensure proper initial values (prevents NaN)
                     const newCategory = {
-                        ...action.payload,
-                        activity: action.payload.activity || 0,
-                        available: action.payload.available || action.payload.budgeted || 0,
-                        budgeted: action.payload.budgeted || 0,
+                        ...category,
+                        activity: category.activity || 0,
+                        available: category.available || category.budgeted || 0,
+                        budgeted: category.budgeted || 0,
                     };
                     group.categories.push(newCategory);
                 }
